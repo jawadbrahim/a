@@ -17,27 +17,9 @@ def create_app(db):
     db.init_app(app)
 
     
-    from project.feature.food_category.arabicfoods.blueprints import arabicfoods_bp
-    from project.feature.food_category.africanfoods.blueprints import africanfoods_bp
-    from project.feature.food_category.europeanfoods.blueprints import europeanfoods_bp
-    from project.feature.food_category.asianfoods.blueprints import asianfoods_bp
-    from project.feature.food_category.sweets.blueprints import sweets_bp
-    from project.feature.food_category.salades.blueprints import salades_bp
-    from project.feature.food_category.sauces.blueprints import sauces_bp
-    from project.feature.food_category.juices.blueprints import juices_bp
-    from project.feature.food_category.icecreams.blueprints import icecreams_bp
-    from project.feature.food_category.americanfoods.blueprints import americanfoods_bp
-
+    from project.feature.food_category.blueprints import foods_bp
     
-    app.register_blueprint(salades_bp, url_prefix="/salades")
-    app.register_blueprint(icecreams_bp, url_prefix="/icecreams")
-    app.register_blueprint(arabicfoods_bp, url_prefix="/arabicfoods")
-    app.register_blueprint(europeanfoods_bp, url_prefix="/europeanfoods")
-    app.register_blueprint(americanfoods_bp,url_prefix="/americanfoods")
-    app.register_blueprint(africanfoods_bp, url_prefix="/africanfoods")
-    app.register_blueprint(asianfoods_bp, url_prefix="/asianfoods")
-    app.register_blueprint(juices_bp, url_prefix="/juices")
-    app.register_blueprint(sauces_bp, url_prefix="/sauces")
-    app.register_blueprint(sweets_bp, url_prefix="/sweets")
+    app.register_blueprint(foods_bp, url_prefix="/foods")
+    
 
     return app

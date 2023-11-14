@@ -3,6 +3,8 @@ import redis
 from flask import json
 from project.config.development import REDIS_HOST,REDIS_PASSWORD,REDIS_PORT
 
+
+
 try:
     redis_client = redis.StrictRedis(
         host=REDIS_HOST,
