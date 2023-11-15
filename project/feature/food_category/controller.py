@@ -13,60 +13,41 @@ foods_schema = FoodSchema(many=True)
 def create_foods():
     if request.method == "POST":
         try:
-           
             data = food_schema.load(request.json)
         except Exception as e:
             return jsonify(FAILED_TO_CREATE_FOOD)
         
-        food_id = data.get("id")
         foods_title = data.get("title")
         foods_description = data.get("description")
         foods_picture = data.get("picture")
         foods_ingredients = data.get("ingredients")
 
-        if food_id:
-           
-            existing_food = Food.query.get(food_id)
+        category_data = data.get("category", {})
+        category_name = category_data.get("title", "") 
+        category = db.session.query(Categories).filter_by(title=category_name).first()
 
-            if existing_food:
-                existing_food.title = foods_title
-                existing_food.description = foods_description
-                existing_food.picture = foods_picture
-                existing_food.ingredients = foods_ingredients
-            else:
-                return jsonify(FAILED_TO_CREATE_FOOD)
+        new_food = Food(
+            title=foods_title,
+            description=foods_description,
+            picture=foods_picture,
+            ingredients=foods_ingredients,
+        )
 
+        if category:
+            new_food.category = category
         else:
-            
-            category_data = data.get("category", {})
-            category_name = category_data.get("title", "") 
-            category = db.session.query(Categories).filter_by(title=category_name).first()
+            new_category = Categories(title=category_name)
+            new_food.category = new_category
 
-            new_food = Food(
-                title=foods_title,
-                description=foods_description,
-                picture=foods_picture,
-                ingredients=foods_ingredients,
-            )
+        db.session.add(new_food)
+        db.session.commit()
 
-            if category:
-                new_food.category = category
-            else:
-               
-                new_category = Categories(title=category_name)
-                new_food.category = new_category
+        serialized_data = food_schema.dump(new_food)
+        return jsonify(serialized_data, CREATED_SUCCESSFULLY)
 
-            db.session.add(new_food)
-            db.session.commit()
-
-            
-            serialized_data = food_schema.dump(new_food)
-            return jsonify(serialized_data, CREATED_SUCCESSFULLY)
-
-    
     foods_list = Food.query.all()
     serialized_foods = foods_schema.dump(foods_list)
-    return jsonify(serialized_foods,CREATED_SUCCESSFULLY)
+    return jsonify(serialized_foods, CREATED_SUCCESSFULLY)
 
 def get_foods_list():
     offset = request.args.get("offset", type=int, default=0)
@@ -104,11 +85,12 @@ def get_foods_list():
     return Response(response, content_type="application/json;")
 
 def update_foods(food_id):
-    foods_title = request.json["title"]
-    foods_description = request.json.get("description")
-    foods_picture = request.json.get("picture")
-    foods_ingredients = request.json.get("ingredients")
-    category_id = request.json.get("category_id")
+    data = request.json
+    foods_title = data["title"]
+    foods_description = data.get("description")
+    foods_picture = data.get("picture")
+    foods_ingredients = data.get("ingredients")
+    category_id = data.get("category_id")
 
     food = db.session.query(Food).get(food_id)
 
@@ -127,6 +109,7 @@ def update_foods(food_id):
     db.session.commit()
 
     return jsonify(UPDATE_SUCCESSFULLY)
+
 
 def get_foods_single(food_id):
     food = db.session.query(Food).get(food_id)
