@@ -3,7 +3,6 @@ __pycache__/
 *$py.class
 database/*.db
 database/*.sqlite
-migrations/versions/
 venv/
 .env
 *.log
