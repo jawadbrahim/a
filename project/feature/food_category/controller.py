@@ -1,57 +1,62 @@
 from flask import jsonify, request, json, Response
 from project.model.Food import Food, Categories
 from database.postgres import db
-from project.feature.food_category.schema import FoodSchema
+from .pydantic_models import FoodPydantic
 from .messages import FAILED_TO_CREATE_FOOD, FOOD_NOT_FOUND,UPDATE_SUCCESSFULLY, CREATED_SUCCESSFULLY, DELETE_SUCCESSFULLY
 from .decorators import validate_properties_existence
-food_schema = FoodSchema()
-foods_schema = FoodSchema(many=True)
-
-
+from pydantic import ValidationError
+from .combine import PydanticToDataclassConverter, DataclassToPydanticConverter
 
 @validate_properties_existence
 def create_foods():
     if request.method == "POST":
         try:
-            data = food_schema.load(request.json)
-        except Exception as e:
+            data = request.json
+
+            
+            food_data_pydantic = FoodPydantic(**data)
+
+            
+            food_data_dataclass = PydanticToDataclassConverter.food_pydantic_to_dataclass(food_data_pydantic)
+
+            
+            category_data = food_data_pydantic.category.dict() if food_data_pydantic.category else {"title": None}
+            category_name = category_data.get("title", "")
+            
+            
+            category = db.session.query(Categories).filter_by(title=category_name).first()
+
+            
+            new_food = Food(
+                title=food_data_dataclass.title,
+                description=food_data_pydantic.description,
+                picture=food_data_pydantic.picture,
+                ingredients=food_data_pydantic.ingredients,
+            )
+
+            
+            if category:
+                new_food.category = category
+            else:
+                new_category = Categories(title=category_name)
+                new_food.category = new_category
+
+            
+            db.session.add(new_food)
+            db.session.commit()
+
+            return jsonify(CREATED_SUCCESSFULLY)
+
+        except ValidationError as e:
             return jsonify(FAILED_TO_CREATE_FOOD)
-        
-        foods_title = data.get("title")
-        foods_description = data.get("description")
-        foods_picture = data.get("picture")
-        foods_ingredients = data.get("ingredients")
 
-        category_data = data.get("category", {})
-        category_name = category_data.get("title", "") 
-        category = db.session.query(Categories).filter_by(title=category_name).first()
+        except Exception as e:
+            return jsonify( FAILED_TO_CREATE_FOOD)
 
-        new_food = Food(
-            title=foods_title,
-            description=foods_description,
-            picture=foods_picture,
-            ingredients=foods_ingredients,
-        )
-
-        if category:
-            new_food.category = category
-        else:
-            new_category = Categories(title=category_name)
-            new_food.category = new_category
-
-        db.session.add(new_food)
-        db.session.commit()
-
-        serialized_data = food_schema.dump(new_food)
-        return jsonify(serialized_data, CREATED_SUCCESSFULLY)
-
-    foods_list = Food.query.all()
-    serialized_foods = foods_schema.dump(foods_list)
-    return jsonify(serialized_foods, CREATED_SUCCESSFULLY)
-
+    return jsonify(CREATED_SUCCESSFULLY)
 def get_foods_list():
     offset = request.args.get("offset", type=int, default=0)
-    limit = request.args.get("limit", type=int, default=20)
+    limit = request.args.get("limit", type=int, default=50)
 
    
     foods = db.session.query(Food).limit(limit).offset(offset).all()

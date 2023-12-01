@@ -11,5 +11,5 @@ class Food(db.Model):
 
 class Categories(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(250), nullable=False)  
+    title = db.Column(db.String(250), nullable=False)
     foods = db.relationship('Food', back_populates='category')
