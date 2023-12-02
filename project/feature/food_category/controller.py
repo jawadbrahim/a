@@ -4,54 +4,40 @@ from database.postgres import db
 from .pydantic_models import FoodPydantic
 from .messages import FAILED_TO_CREATE_FOOD, FOOD_NOT_FOUND,UPDATE_SUCCESSFULLY, CREATED_SUCCESSFULLY, DELETE_SUCCESSFULLY
 from .decorators import validate_properties_existence
-from pydantic import ValidationError
-from .combine import PydanticToDataclassConverter, DataclassToPydanticConverter
+
+
 
 @validate_properties_existence
 def create_foods():
     if request.method == "POST":
         try:
             data = request.json
-
             
             food_data_pydantic = FoodPydantic(**data)
-
-            
-            food_data_dataclass = PydanticToDataclassConverter.food_pydantic_to_dataclass(food_data_pydantic)
-
-            
-            category_data = food_data_pydantic.category.dict() if food_data_pydantic.category else {"title": None}
-            category_name = category_data.get("title", "")
-            
+            category_name = food_data_pydantic.category.title if food_data_pydantic.category else None
             
             category = db.session.query(Categories).filter_by(title=category_name).first()
 
-            
             new_food = Food(
-                title=food_data_dataclass.title,
+                title=food_data_pydantic.title,
                 description=food_data_pydantic.description,
                 picture=food_data_pydantic.picture,
                 ingredients=food_data_pydantic.ingredients,
             )
 
-            
             if category:
                 new_food.category = category
             else:
                 new_category = Categories(title=category_name)
                 new_food.category = new_category
 
-            
             db.session.add(new_food)
             db.session.commit()
 
             return jsonify(CREATED_SUCCESSFULLY)
 
-        except ValidationError as e:
-            return jsonify(FAILED_TO_CREATE_FOOD)
-
         except Exception as e:
-            return jsonify( FAILED_TO_CREATE_FOOD)
+            return jsonify(FAILED_TO_CREATE_FOOD)
 
     return jsonify(CREATED_SUCCESSFULLY)
 def get_foods_list():
